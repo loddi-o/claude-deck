@@ -1,0 +1,17 @@
+{
+  "name": "Claude Deck",
+  "author": "loddi-o",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": [
+      "ai",
+      "claude",
+      "assistant",
+      "troubleshooting",
+      "voice",
+      "agent"
+    ],
+    "description": "Claude Code agentico nel Quick Access Menu: troubleshooting e riparazione di SteamOS/Bazzite con GUI per gamepad, dettatura vocale offline, modalità Piano e Auto, memoria persistente."
+  }
+}

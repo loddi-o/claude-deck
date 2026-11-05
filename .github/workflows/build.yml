@@ -1,0 +1,34 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - run: python -m unittest discover -s tests/backend -t tests/backend
+      - run: pnpm run build
+      - name: Build whisper-cli (static, AVX2)
+        run: bash scripts/build-whisper.sh
+      - name: Package
+        run: bash scripts/package.sh "$RUNNER_TEMP"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-deck
+          path: ${{ runner.temp }}/claude-deck-v*.zip

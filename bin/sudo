@@ -1,0 +1,6 @@
+#!/bin/sh
+# Claude Deck wrapper: the agent has no TTY, so use the askpass helper when a password is stored.
+if [ -n "${SUDO_ASKPASS:-}" ] && [ -r "${CLAUDE_DECK_SUDO_PW_FILE:-/nonexistent}" ]; then
+  exec /usr/bin/sudo -A "$@"
+fi
+exec /usr/bin/sudo -n "$@"

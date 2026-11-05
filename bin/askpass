@@ -1,0 +1,5 @@
+#!/bin/sh
+# Used by `sudo -A`: prints the password stored by Claude Deck (file mode 0600).
+f="${CLAUDE_DECK_SUDO_PW_FILE:-}"
+[ -n "$f" ] && [ -r "$f" ] || exit 1
+exec cat "$f"

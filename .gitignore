@@ -1,0 +1,12 @@
+node_modules/
+dist/
+out/
+.tools/
+*.zip
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.bin
+!bin/whisper-cli
+.DS_Store
