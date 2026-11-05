@@ -106,7 +106,7 @@ docs/ARCHITECTURE.md       come funziona
 
 ## Licenza
 
-MIT — vedi [LICENSE](LICENSE). Claude è un marchio di Anthropic; questo progetto non è affiliato né approvato da Anthropic o Valve.
+MIT — vedi [LICENSE](LICENSE); componenti di terze parti (whisper.cpp, Font Awesome, …) in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Claude è un marchio di Anthropic; questo progetto non è affiliato né approvato da Anthropic o Valve.
 
 ---
 
