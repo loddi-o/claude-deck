@@ -1,23 +1,24 @@
 import { ButtonItem, Focusable, PanelSection, PanelSectionRow } from "@decky/ui";
 import { useEffect } from "react";
-import { FaExpand, FaPlus, FaStop } from "react-icons/fa";
+import { FaCog, FaExpand, FaPlus, FaStop } from "react-icons/fa";
 import { api } from "../api";
 import { Welcome } from "../components/Chat";
 import { PermissionItem } from "../components/Cards";
 import { Composer, VoiceBanner } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
-import { ModeSwitch, Root, StatusDot, ToolGlyph, statusLabel } from "../components/ui";
+import { Btn, ModeSwitch, Root, StatusDot, ToolGlyph, statusLabel } from "../components/ui";
 import { t } from "../i18n";
 import { pendingPerm } from "../reducer";
 import {
   needsSetup,
   newSession,
   openFullScreen,
+  openSettings,
   registerVisible,
   runSetupCheck,
-  setTab,
   useStore,
 } from "../store";
+import { setupIssues } from "../setup";
 import { summarizeTool } from "../tools";
 import type { ChatItem } from "../types";
 
@@ -74,6 +75,17 @@ function Latest({ items }: { items: ChatItem[] }) {
   );
 }
 
+/** Always-visible way into the Settings page; shows how many essentials are still missing. */
+function SettingsEntry({ issues }: { issues: number }) {
+  return (
+    <Btn className="cd-settings-entry" onClick={openSettings}>
+      <FaCog />
+      <span className="cd-lbl">{t("tabSettings")}</span>
+      {issues > 0 && <span className="cd-pill">⚠ {t("setupPending", { n: issues })}</span>}
+    </Btn>
+  );
+}
+
 export function QuickPanel() {
   const s = useStore();
   useEffect(() => registerVisible(), []);
@@ -108,6 +120,9 @@ export function QuickPanel() {
           </div>
         </PanelSectionRow>
         <PanelSectionRow>
+          <SettingsEntry issues={setupIssues(s.setup)} />
+        </PanelSectionRow>
+        <PanelSectionRow>
           <ModeSwitch />
         </PanelSectionRow>
       </PanelSection>
@@ -116,17 +131,6 @@ export function QuickPanel() {
         <PanelSection>
           <PanelSectionRow>
             <div className="cd-warnbox">{!s.setup?.claude.found ? t("nClaudeMissing") : t("notLoggedIn")}</div>
-          </PanelSectionRow>
-          <PanelSectionRow>
-            <ButtonItem
-              layout="below"
-              onClick={() => {
-                setTab("settings");
-                openFullScreen();
-              }}
-            >
-              {t("tabSettings")}
-            </ButtonItem>
           </PanelSectionRow>
         </PanelSection>
       )}

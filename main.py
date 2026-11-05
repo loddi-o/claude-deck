@@ -85,8 +85,9 @@ class Plugin:
         await self.session.stop()
 
     async def _uninstall(self) -> None:
+        # Decky calls this on every reinstall too (updating from a ZIP = uninstall + install), so the
+        # saved sudo password is deliberately kept: users remove it from Settings before uninstalling.
         await self._unload()
-        self.sudo.clear()  # never leave the password behind
 
     def _ensure_executables(self) -> None:
         try:

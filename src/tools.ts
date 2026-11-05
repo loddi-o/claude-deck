@@ -1,4 +1,5 @@
 /** Human readable summaries of Claude Code tool calls. */
+import { t } from "./i18n";
 import type { Key } from "./i18n";
 
 export type ToolIcon = "terminal" | "file" | "edit" | "search" | "web" | "memory" | "todo" | "agent" | "plan" | "question" | "tool";
@@ -50,11 +51,11 @@ export function summarizeTool(name: string, input: any): ToolSummary {
     case "AskUserQuestion":
       return { icon: "question", label: "Question", detail: "" };
     case "mcp__claude_deck__remember":
-      return { icon: "memory", label: "Memoria", detail: firstLine(i.note) };
+      return { icon: "memory", label: t("toolMemory"), detail: firstLine(i.note) };
     case "mcp__claude_deck__recall":
-      return { icon: "memory", label: "Memoria", detail: "recall" };
+      return { icon: "memory", label: t("toolMemory"), detail: "recall" };
     case "mcp__claude_deck__forget":
-      return { icon: "memory", label: "Memoria", detail: firstLine(i.match) };
+      return { icon: "memory", label: t("toolMemory"), detail: firstLine(i.match) };
     default: {
       const vals = Object.values(i).filter((v) => typeof v === "string") as string[];
       return { icon: "tool", label: name.replace(/^mcp__/, "").replace(/__/g, ": "), detail: firstLine(vals[0] ?? "") };

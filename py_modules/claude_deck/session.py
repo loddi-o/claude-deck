@@ -19,7 +19,7 @@ from typing import Any, Deque, Dict, List, Optional
 from . import protocol as P
 from .hub import Hub
 from .memory import Memory
-from .prompts import build_system_prompt
+from .prompts import build_system_prompt, language_name
 from .sessions_index import load_history
 from .settings import Settings
 from .sudo import Sudo
@@ -148,6 +148,7 @@ class ClaudeSession:
             cwd,
             self.memory.prompt_block(),
             {"decky_home": self.paths.decky_home, "runtime": self.paths.runtime_dir},
+            language_name(self.settings["ui_language_resolved"]),
         )
         flag = self.mode_flag(self.mode)
         cmd: List[str] = [
@@ -279,9 +280,9 @@ class ClaudeSession:
             outcome = "allow"
         else:
             default = (
-                "L'utente non ha approvato il piano. Rivedilo in base alle sue note e riproponilo."
+                "The user did not approve the plan. Revise it based on their notes and propose it again."
                 if kind == "plan"
-                else "L'utente ha negato questa azione."
+                else "The user denied this action."
             )
             message = (decision.get("message") or "").strip() or default
             reply = P.deny_response(request_id, message, bool(decision.get("interrupt")))

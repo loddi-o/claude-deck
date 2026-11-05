@@ -1,3 +1,4 @@
+import "./pre";
 import { createRoot } from "react-dom/client";
 import { FullScreen } from "../../src/pages/FullScreen";
 import { QuickPanel } from "../../src/pages/QuickPanel";
@@ -11,7 +12,8 @@ const view = q.get("view") || "full";
 const name = q.get("scenario") || "chat";
 const tab = (q.get("tab") || "chat") as Tab;
 
-const { state, setup, live } = scenario(name);
+const lang = (q.get("lang") || "it") as "it" | "en" | "auto";
+const { state, setup, live } = scenario(name, lang);
 (window as any).__state = state;
 (window as any).__setup = setup;
 

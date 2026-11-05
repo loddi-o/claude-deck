@@ -170,7 +170,7 @@ describe("questions, plans, notices", () => {
 
 describe("textOf", () => {
   it("flattens blocks", () => {
-    expect(textOf([{ type: "text", text: "a" }, { type: "image" }, { type: "tool_reference" }])).toBe("a\n[immagine]");
+    expect(textOf([{ type: "text", text: "a" }, { type: "image" }, { type: "tool_reference" }])).toBe("a\n[image]");
     expect(textOf("x")).toBe("x");
     expect(textOf(null)).toBe("");
   });

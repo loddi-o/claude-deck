@@ -14,19 +14,20 @@
 - **Dettatura vocale** (solo voce → testo): tocca il microfono, parla, e il testo compare nel campo messaggio. Riconoscimento **offline** con whisper.cpp, fine frase automatica, nessun audio lascia il dispositivo.
 - **Memoria**: riprende l'ultima conversazione all'apertura, elenco delle conversazioni passate e una **memoria persistente** (`memory.md`) che Claude legge a ogni nuova conversazione e aggiorna da solo (fix applicati, pacchetti installati, particolarità dell'hardware).
 - **Consapevole del sistema**: il prompt di sistema cambia per SteamOS (rootfs read-only, Flatpak, distrobox, `steamos-readonly`) e per Bazzite (`ujust`, `rpm-ostree`, Homebrew).
+- **Italiano e inglese**: l'interfaccia segue la lingua di Steam (inglese se non supportata) e si cambia da *Impostazioni ▸ Lingua / Language*.
 - **Domande a scelta multipla** (`AskUserQuestion`) come pulsanti: niente digitazione per le scelte.
 
 ## Installazione
 
 1. Serve [Decky Loader](https://decky.xyz) e **Claude Code** già installato e collegato al tuo account (dalla pagina *Impostazioni → Configurazione* del plugin puoi anche installarlo / accedere).
-2. Scarica `claude-deck-v0.1.0.zip` sul dispositivo.
+2. Scarica `claude-deck-v0.1.1.zip` sul dispositivo.
 3. In Game Mode: **Decky ▸ ⚙ Impostazioni ▸ Generale ▸ Modalità sviluppatore** (attivala), poi **Sviluppatore ▸ Installa plugin da ZIP** e scegli il file.
    In alternativa, in Desktop Mode: `scripts/dev-install.sh` (richiede sudo).
-4. Apri il QAM (**⋯**) ▸ **Claude Deck**.
+4. Apri il QAM (**⋯**) ▸ **Claude Deck**. Le **Impostazioni** sono il pulsante in cima al pannello (oppure l'ingranaggio accanto al titolo).
 
 ### Primo avvio
 
-Apri **Schermo intero ▸ Impostazioni** e controlla la checklist:
+Premi **Impostazioni** (in cima al pannello: il badge ⚠ indica quante cose mancano) e controlla la checklist:
 
 | Voce | Cosa fare |
 |---|---|
@@ -56,7 +57,7 @@ I suggerimenti dei pulsanti in basso (barra di Steam) mostrano sempre il tasto g
 Claude Deck dà a un agente AI la possibilità di **eseguire comandi sul tuo dispositivo**. Questo è il suo scopo, ma:
 
 - In **Piano** non viene modificato nulla finché non approvi. In **Auto** Claude agisce da solo: usalo quando ti fidi del compito.
-- La **password sudo**, se la salvi, resta in chiaro in un file `chmod 600` nella cartella dati del plugin (`~/homebrew/settings/claude-deck/sudo.pw`). Claude può usarla — e leggerla — quindi equivale a dargli **accesso root**. Puoi rimuoverla in qualsiasi momento; viene cancellata anche alla disinstallazione del plugin.
+- La **password sudo**, se la salvi, resta in chiaro in un file `chmod 600` nella cartella dati del plugin (`~/homebrew/settings/claude-deck/sudo.pw`). Claude può usarla — e leggerla — quindi equivale a dargli **accesso root**. Resta salvata anche quando aggiorni il plugin; per toglierla usa *Rimuovi password* nelle Impostazioni **prima di disinstallare** (altrimenti il file resta in quella cartella).
 - Il prompt di sistema chiede a Claude di fare backup prima di toccare file di sistema, di non cancellare salvataggi/prefix Proton senza conferma e di avvisare prima di riavviare Decky/Steam (che chiude la sua stessa interfaccia). Sono istruzioni, non garanzie: tieni dei backup.
 - Il testo che scrivi e l'output dei comandi vengono inviati ad Anthropic tramite Claude Code, come in qualsiasi sessione di Claude Code. L'audio della dettatura invece **resta sul dispositivo**.
 - Le modifiche al rootfs di SteamOS (`pacman`, `/usr`) vengono perse a ogni aggiornamento di SteamOS: Claude è istruito a preferire Flatpak, distrobox e `~/.local`.
@@ -76,7 +77,7 @@ Claude Deck dà a un agente AI la possibilità di **eseguire comandi sul tuo dis
 scripts/setup-node.sh        # Node 22 + pnpm 9 in ~/.cache (nessun sudo)
 scripts/build.sh             # typecheck + test + bundle
 scripts/build-whisper.sh     # whisper.cpp statico (AVX2) -> bin/whisper-cli  (serve gcc, cmake, git)
-scripts/package.sh           # -> ../claude-deck-v0.1.0.zip
+scripts/package.sh           # -> ../claude-deck-v0.1.1.zip
 scripts/ui-shots.sh          # screenshot della GUI con Decky simulato (Chrome headless)
 python3 scripts/e2e_real_claude.py   # prova end-to-end contro il vero `claude` (pochi token)
 ```
@@ -120,8 +121,10 @@ MIT — vedi [LICENSE](LICENSE). Claude è un marchio di Anthropic; questo proge
 - **Memory**: resumes the last conversation and keeps a persistent `memory.md` the agent reads and updates.
 - **Distro-aware** system prompt (SteamOS read-only rootfs, Bazzite/ostree).
 
+**Languages**: Italian and English. The UI follows Steam's language (English if it isn't supported); change it in *Settings ▸ Lingua / Language*.
+
 **Install**: download the ZIP → Decky ▸ Settings ▸ General ▸ enable *Developer mode* → Developer ▸ *Install plugin from ZIP*. Then open *Settings* inside the plugin and follow the checklist (Claude login, sudo password, voice model).
 
-**Security**: this plugin lets an AI agent run commands on your device. The optional sudo password is stored in a `chmod 600` file and is effectively root access for the agent. Audio stays local; text and command output go to Anthropic via Claude Code as usual.
+**Security**: this plugin lets an AI agent run commands on your device. The optional sudo password is stored in a `chmod 600` file (kept across plugin updates; remove it in Settings before uninstalling) and is effectively root access for the agent. Audio stays local; text and command output go to Anthropic via Claude Code as usual.
 
 Build from source: `scripts/build.sh`, `scripts/build-whisper.sh`, `scripts/package.sh`. MIT licensed.

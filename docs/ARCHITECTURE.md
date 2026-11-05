@@ -63,6 +63,7 @@ All'avvio la UI si sottoscrive, chiama `get_state()` (snapshot + `seq`) e ignora
 - `reducer.ts`: funzione pura eventi → elementi di chat (streaming sostituito dal blocco finale, ciclo di vita degli strumenti, history).
 - `components/`: `Chat`, `Cards` (strumenti, permessi, piano, domande), `Composer` (+ microfono), `Markdown` (parser senza dipendenze, ogni blocco è un bersaglio di focus), `ui` (modali, interruttore modalità).
 - `pages/`: `QuickPanel` (QAM), `FullScreen` (+ tab `Sessions`, `Memory`, `Settings`).
+- Lingua: `i18n.ts` (`it` base + `en`). `detectSystemLanguage()` legge, nell'ordine, il parametro `LANGUAGE` della pagina, `LocalizationManager.GetPreferredLocales()[0]`, `m_rgLocalesToUse[0]`, `navigator.language`: **la prima sorgente che risponde decide** e una lingua non supportata dà `en`. La lingua effettiva viene inviata al backend (`ui_language_resolved`) per il prompt di sistema («rispondi nella lingua dell'utente, altrimenti …»).
 - Navigazione: `Focusable` + `onSecondaryButton`/`onOptionsButton`/`onButtonDown` di `@decky/ui`; i suggerimenti dei tasti sono quelli di Steam (`on*ActionDescription`).
 
 ## Test

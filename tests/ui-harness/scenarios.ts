@@ -2,11 +2,13 @@
 
 type Ev = [number, string, any];
 
-const settings = {
+const makeSettings = (lang: string) => ({
   mode: "plan", model: "", effort: "", resume_on_open: true, cwd: "", extra_dirs: [],
-  ui_language: "it", voice_language: "auto", voice_model: "small-q5_1", voice_silence_ms: 1400,
+  ui_language: lang, ui_language_resolved: lang === "auto" ? "en" : lang, voice_language: "auto",
+  voice_model: "small-q5_1", voice_silence_ms: 1400,
   voice_autosend: false, notifications: true, text_scale: 1, last_session_id: "",
-};
+});
+let settings = makeSettings("it");
 
 const status = (over: any = {}) => ({
   status: "idle", running: true, mode: "plan", effective_mode: "plan", auto_unavailable: false,
@@ -78,7 +80,8 @@ function base(events: [string, any][], over: any = {}, setupOver: any = null): a
   };
 }
 
-export function scenario(name: string): { state: any; setup: any; live?: [string, any, number?][] } {
+export function scenario(name: string, lang = "it"): { state: any; setup: any; live?: [string, any, number?][] } {
+  settings = makeSettings(lang);
   switch (name) {
     case "empty":
       return base([], { running: false });

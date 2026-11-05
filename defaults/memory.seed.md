@@ -1,4 +1,4 @@
-# Memoria di Claude Deck
-Note persistenti su questo dispositivo. Claude le legge a ogni nuova conversazione.
+# Claude Deck memory
+Persistent notes about this device. Claude reads them at the start of every conversation.
 
-## Note
+## Notes

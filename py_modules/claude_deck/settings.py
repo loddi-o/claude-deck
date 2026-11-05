@@ -15,7 +15,8 @@ DEFAULTS: Dict[str, Any] = {
     "resume_on_open": True,  # reopen the last conversation when the plugin starts
     "cwd": "",  # "" = $HOME
     "extra_dirs": ["/etc", "/var", "/usr", "/opt", "/run", "/boot", "/sys", "/proc"],
-    "ui_language": "auto",  # auto | it | en
+    "ui_language": "auto",  # auto | it | en (what the user picked)
+    "ui_language_resolved": "en",  # it | en (what the UI actually uses; sent by the frontend)
     "voice_language": "auto",  # whisper language: auto | it | en | ...
     "voice_model": "small-q5_1",
     "voice_silence_ms": 1400,
@@ -29,6 +30,7 @@ CHOICES = {
     "mode": ("plan", "auto"),
     "effort": ("", "low", "medium", "high", "xhigh", "max"),
     "ui_language": ("auto", "it", "en"),
+    "ui_language_resolved": ("it", "en"),
 }
 
 

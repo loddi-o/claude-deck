@@ -9,9 +9,9 @@ from typing import List
 from .util import atomic_write, today
 
 HEADER = (
-    "# Memoria di Claude Deck\n"
-    "Note persistenti su questo dispositivo. Claude le legge a ogni nuova conversazione.\n\n"
-    "## Note\n"
+    "# Claude Deck memory\n"
+    "Persistent notes about this device. Claude reads them at the start of every conversation.\n\n"
+    "## Notes\n"
 )
 
 
@@ -75,7 +75,7 @@ class Memory:
         """Memory text for the system prompt; drops the oldest lines when too long."""
         text = self.read().strip()
         if len(text) <= limit:
-            return text or "(vuota)"
+            return text or "(empty)"
         lines = text.splitlines()
         head, body = lines[:3], lines[3:]
         out: List[str] = []
@@ -86,4 +86,4 @@ class Memory:
             out.append(line)
             size += len(line) + 1
         out.reverse()
-        return "\n".join(head + ["(… note più vecchie omesse: usa lo strumento recall …)"] + out)
+        return "\n".join(head + ["(… older notes omitted: use the recall tool …)"] + out)

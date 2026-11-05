@@ -72,7 +72,7 @@ def clip(text: str, limit: int) -> str:
         return text
     head = int(limit * 0.7)
     tail = limit - head
-    return f"{text[:head]}\n… [{len(text) - limit} caratteri omessi] …\n{text[-tail:]}"
+    return f"{text[:head]}\n… [{len(text) - limit} chars omitted] …\n{text[-tail:]}"
 
 
 def shrink(obj: Any, max_str: int = 6000, max_items: int = 300, _depth: int = 0) -> Any:
@@ -92,7 +92,7 @@ def shrink(obj: Any, max_str: int = 6000, max_items: int = 300, _depth: int = 0)
     if isinstance(obj, (list, tuple)):
         items: List[Any] = [shrink(v, max_str, max_items, _depth + 1) for v in obj[:max_items]]
         if len(obj) > max_items:
-            items.append(f"… [{len(obj) - max_items} elementi omessi]")
+            items.append(f"… [{len(obj) - max_items} items omitted]")
         return items
     if obj is None or isinstance(obj, (bool, int, float)):
         return obj

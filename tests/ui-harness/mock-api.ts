@@ -23,6 +23,7 @@ const fixtures: Record<string, (...a: any[]) => any> = {
     "# Memoria di Claude Deck\nNote persistenti.\n\n## Note\n- [2026-11-04] Il dispositivo è una BC-250 con SteamOS, niente microfono integrato\n- [2026-11-04] EmuDeck installato in ~/Emulation; RPCS3 come AppImage\n- [2026-11-05] Per i giochi PS3 serve il firmware PS3UPDAT.PUP in ~/.config/rpcs3\n",
   setup_check: () => (window as any).__setup,
   sudo_test: () => ({ ok: true, message: "ok" }),
+  set_settings: (patch: any) => ({ ...(window as any).__state.settings, ...patch }),
 };
 
 export const callable = (route: string) => async (...args: any[]) => {

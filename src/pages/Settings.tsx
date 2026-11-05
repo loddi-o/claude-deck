@@ -3,7 +3,7 @@ import { ReactNode, useEffect } from "react";
 import { FaCheckCircle, FaDownload, FaExclamationCircle, FaKey, FaTimes } from "react-icons/fa";
 import { api } from "../api";
 import { Btn, SectionTitle, confirmDialog, promptText } from "../components/ui";
-import { t } from "../i18n";
+import { LANG_NAMES, systemLanguage, t } from "../i18n";
 import {
   runSetupCheck,
   setSudoSet,
@@ -187,6 +187,17 @@ export function SettingsPage() {
 
   return (
     <div className="cd-page">
+      <DropdownItem
+        label={t("language")}
+        rgOptions={[
+          { data: "auto", label: t("langSystem", { name: LANG_NAMES[systemLanguage()] }) },
+          { data: "it", label: LANG_NAMES.it },
+          { data: "en", label: LANG_NAMES.en },
+        ]}
+        selectedOption={settings.ui_language}
+        onChange={(o) => void updateSettings({ ui_language: o.data })}
+      />
+
       <SectionTitle>{t("setupTitle")}</SectionTitle>
       <Setup />
 
@@ -259,16 +270,6 @@ export function SettingsPage() {
       />
 
       <SectionTitle>{t("interfaceTitle")}</SectionTitle>
-      <DropdownItem
-        label={t("uiLanguage")}
-        rgOptions={[
-          { data: "auto", label: t("langAuto") },
-          { data: "it", label: "Italiano" },
-          { data: "en", label: "English" },
-        ]}
-        selectedOption={settings.ui_language}
-        onChange={(o) => void updateSettings({ ui_language: o.data })}
-      />
       <SliderField
         label={t("textScale")}
         value={Math.round(settings.text_scale * 100)}

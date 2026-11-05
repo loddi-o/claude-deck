@@ -85,7 +85,7 @@ def check(cond, label):
 async def main_async():
     plugin = main.Plugin()
     await plugin._main()
-    await plugin.set_settings({"model": "haiku", "cwd": WORK, "mode": "plan", "resume_on_open": False})
+    await plugin.set_settings({"model": "haiku", "cwd": WORK, "mode": "plan", "resume_on_open": False, "ui_language_resolved": "it"})
     state = await plugin.get_state()
     check(state["status"]["status"] == "idle", "initial state idle")
 

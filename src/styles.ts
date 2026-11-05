@@ -130,6 +130,13 @@ export const CSS = `
 .cd-btn.primary { background: var(--cd-accent) !important; color: #1a0f0a !important; font-weight: 700; }
 .cd-btn.danger { color: var(--cd-err) !important; }
 .cd-btn.ghost { background: var(--cd-card) !important; }
+.cd-settings-entry {
+  gap: 10px !important; justify-content: flex-start !important;
+  border: 2px solid var(--cd-accent) !important; background: var(--cd-accent-soft) !important;
+  color: var(--cd-accent) !important; font-weight: 700;
+}
+.cd-settings-entry .cd-lbl { flex: 1; text-align: left; }
+.cd-pill { flex: 0 0 auto; font-size: .78em; padding: 1px 9px; border-radius: 999px; background: var(--cd-warn); color: #1a1405; font-weight: 700; }
 .cd-opt { text-align: left !important; justify-content: flex-start !important; flex-direction: column; align-items: flex-start !important; gap: 2px !important; }
 .cd-opt small { opacity: .7; font-size: .82em; }
 .cd-opt.sel { background: var(--cd-accent-soft) !important; box-shadow: inset 0 0 0 2px var(--cd-accent); }

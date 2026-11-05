@@ -55,15 +55,15 @@ def call_tool(memory: Memory, name: str, args: dict) -> dict:
     try:
         if name == "remember":
             line = memory.add(str(args.get("note", "")))
-            return _result(f"Salvato in memoria: {line}")
+            return _result(f"Saved to memory: {line}")
         if name == "recall":
-            return _result(memory.read() or "(vuota)")
+            return _result(memory.read() or "(empty)")
         if name == "forget":
             n = memory.forget(str(args.get("match", "")))
-            return _result(f"Rimosse {n} note.")
+            return _result(f"Removed {n} notes.")
     except Exception as exc:  # noqa: BLE001 - report to the model instead of crashing
-        return _result(f"Errore: {exc}", True)
-    return _result(f"Strumento sconosciuto: {name}", True)
+        return _result(f"Error: {exc}", True)
+    return _result(f"Unknown tool: {name}", True)
 
 
 def handle(memory: Memory, msg: dict) -> dict | None:

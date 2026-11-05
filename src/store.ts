@@ -3,7 +3,7 @@ import { addEventListener, removeEventListener, toaster } from "@decky/api";
 import { Navigation } from "@decky/ui";
 import { useSyncExternalStore } from "react";
 import { api } from "./api";
-import { setLanguage, t } from "./i18n";
+import { currentLanguage, setLanguage, t } from "./i18n";
 import { emptyChat, pendingPerm, reduceChat } from "./reducer";
 import { summarizeTool } from "./tools";
 import type {
@@ -48,6 +48,7 @@ const defaultSettings: Settings = {
   cwd: "",
   extra_dirs: [],
   ui_language: "auto",
+  ui_language_resolved: "en",
   voice_language: "auto",
   voice_model: "small-q5_1",
   voice_silence_ms: 1400,
@@ -122,6 +123,12 @@ export function registerVisible(): () => void {
 export function openFullScreen(): void {
   Navigation.CloseSideMenus();
   Navigation.Navigate(ROUTE);
+}
+
+/** Opens the full-screen page directly on the Settings tab. */
+export function openSettings(): void {
+  set({ tab: "settings" });
+  openFullScreen();
 }
 
 /* ------------------------------------------------------------------- events */
@@ -222,6 +229,11 @@ export async function initStore(): Promise<void> {
     }
     if (!snap) throw new Error("backend not available");
     setLanguage(snap.settings.ui_language);
+    if (snap.settings.ui_language_resolved !== currentLanguage()) {
+      // the agent replies in this language when the user's text doesn't say otherwise
+      snap.settings = { ...snap.settings, ui_language_resolved: currentLanguage() };
+      void api.setSettings({ ui_language_resolved: currentLanguage() });
+    }
     let chat = emptyChat();
     for (const [, kind, payload] of snap.events) chat = reduceChat(chat, kind, payload);
     lastSeq = snap.seq;
@@ -288,7 +300,10 @@ export async function toggleMode(): Promise<void> {
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   set({ settings: { ...state.settings, ...patch } });
-  if (patch.ui_language) setLanguage(patch.ui_language);
+  if (patch.ui_language) {
+    setLanguage(patch.ui_language);
+    patch = { ...patch, ui_language_resolved: currentLanguage() };
+  }
   const saved = await api.setSettings(patch);
   set({ settings: saved });
 }

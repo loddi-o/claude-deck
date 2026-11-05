@@ -156,7 +156,7 @@ const it = {
   sudoTest: "Verifica password",
   sudoRemove: "Rimuovi password",
   sudoWarn:
-    "Salvata in chiaro in un file privato (chmod 600). Claude può usarla — e leggerla — quindi equivale a dargli accesso root. Su SteamOS imposta prima la password con `passwd`.",
+    "Salvata in chiaro in un file privato (chmod 600). Claude può usarla — e leggerla — quindi equivale a dargli accesso root. Resta salvata anche quando aggiorni il plugin: rimuovila da qui prima di disinstallare. Su SteamOS imposta prima la password con `passwd`.",
   sudoOk: "Password corretta",
   sudoWrong: "Password errata",
   sudoNone: "Nessuna password salvata",
@@ -176,7 +176,6 @@ const it = {
   voiceSilence: "Pausa per fine frase",
   voiceAutosend: "Invia subito dopo la dettatura",
   interfaceTitle: "Interfaccia",
-  uiLanguage: "Lingua interfaccia",
   textScale: "Dimensione testo",
   notifications: "Notifiche quando Claude ha bisogno di te",
   about: "Informazioni",
@@ -195,6 +194,11 @@ const it = {
   hintAlways: "Per la sessione",
   hintDenyReason: "Nega con motivo",
   hintSend: "Invia",
+  // language / settings entry
+  language: "Lingua / Language",
+  langSystem: "Automatica (sistema: {name})",
+  toolMemory: "Memoria",
+  setupPending: "{n} da configurare",
 };
 
 export type Key = keyof typeof it;
@@ -344,7 +348,7 @@ const en: Record<Key, string> = {
   sudoTest: "Verify password",
   sudoRemove: "Remove password",
   sudoWarn:
-    "Stored in clear text in a private file (chmod 600). Claude can use — and read — it, so this is equivalent to giving it root. On SteamOS set the password with `passwd` first.",
+    "Stored in clear text in a private file (chmod 600). Claude can use — and read — it, so this is equivalent to giving it root. It stays saved when you update the plugin: remove it here before uninstalling. On SteamOS set the password with `passwd` first.",
   sudoOk: "Password is correct",
   sudoWrong: "Wrong password",
   sudoNone: "No password saved",
@@ -364,7 +368,6 @@ const en: Record<Key, string> = {
   voiceSilence: "End-of-sentence pause",
   voiceAutosend: "Send right after dictation",
   interfaceTitle: "Interface",
-  uiLanguage: "Interface language",
   textScale: "Text size",
   notifications: "Notify me when Claude needs me",
   about: "About",
@@ -382,20 +385,77 @@ const en: Record<Key, string> = {
   hintAlways: "For the session",
   hintDenyReason: "Deny with reason",
   hintSend: "Send",
+  language: "Lingua / Language",
+  langSystem: "Automatic (system: {name})",
+  toolMemory: "Memory",
+  setupPending: "{n} to set up",
 };
 
-let lang: "it" | "en" = "it";
+export type Lang = "it" | "en";
+export const SUPPORTED: readonly Lang[] = ["it", "en"];
+export const LANG_NAMES: Record<Lang, string> = { it: "Italiano", en: "English" };
 
-export function setLanguage(pref: "auto" | "it" | "en"): void {
-  if (pref === "auto") {
-    const nav = (typeof navigator !== "undefined" && navigator.language) || "en";
-    lang = nav.toLowerCase().startsWith("it") ? "it" : "en";
-  } else {
-    lang = pref;
-  }
+/** Steam names its UI languages ("italian", "brazilian", "schinese"...); only ours matter here. */
+const STEAM_NAMES: Record<string, Lang> = { italian: "it", english: "en" };
+
+/** Maps a Steam language name or a BCP-47 tag ("it-IT", "en_US") to a supported language. */
+export function languageFromValue(value: string | undefined | null): Lang | undefined {
+  if (!value) return undefined;
+  const v = String(value).trim().toLowerCase().replace("_", "-");
+  if (!v) return undefined;
+  if (STEAM_NAMES[v]) return STEAM_NAMES[v];
+  const base = v.split("-")[0];
+  return (SUPPORTED as readonly string[]).includes(base) ? (base as Lang) : undefined;
 }
 
-export function currentLanguage(): "it" | "en" {
+export type LangSource = () => string | undefined | null;
+
+/** Where the system (Steam) language can be read, most authoritative first. */
+function defaultSources(): LangSource[] {
+  return [
+    // Steam passes its language name to its UI page
+    () => new URLSearchParams(window.location.search).get("LANGUAGE"),
+    () => (window as any).LocalizationManager?.GetPreferredLocales?.()?.[0],
+    () => (window as any).LocalizationManager?.m_rgLocalesToUse?.[0],
+    // only when Steam says nothing at all
+    () => navigator.language,
+  ];
+}
+
+/**
+ * The system language. The first source that answers decides; if that language isn't one we
+ * translate the answer is English (never a lower-priority source, never a guess).
+ */
+export function detectSystemLanguage(sources: LangSource[] = defaultSources()): Lang {
+  for (const get of sources) {
+    let value: string | undefined | null;
+    try {
+      value = get();
+    } catch {
+      continue; // source not available in this environment
+    }
+    if (value && String(value).trim()) return languageFromValue(value) ?? "en";
+  }
+  return "en";
+}
+
+export function resolveLanguage(pref: "auto" | Lang): Lang {
+  if (pref === "auto") return detectSystemLanguage();
+  return (SUPPORTED as readonly string[]).includes(pref) ? pref : "en";
+}
+
+// Right language from the very first paint, before the backend has answered.
+let lang: Lang = detectSystemLanguage();
+
+export function systemLanguage(): Lang {
+  return detectSystemLanguage();
+}
+
+export function setLanguage(pref: "auto" | Lang): void {
+  lang = resolveLanguage(pref);
+}
+
+export function currentLanguage(): Lang {
   return lang;
 }
 

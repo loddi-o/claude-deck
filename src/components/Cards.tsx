@@ -171,7 +171,7 @@ function PlanCard({ item, compact }: { item: PermItem; compact?: boolean }) {
   const revise = async () => {
     const note = await promptText(t("planReviseDone"));
     if (note !== null && note.trim()) {
-      await decide({ behavior: "deny", message: `L'utente chiede di modificare il piano: ${note.trim()}` });
+      await decide({ behavior: "deny", message: `The user asks to revise the plan: ${note.trim()}` });
     }
   };
   return (
@@ -192,7 +192,7 @@ function PlanCard({ item, compact }: { item: PermItem; compact?: boolean }) {
         <Btn disabled={busy} onClick={revise}>
           {t("planRevise")}
         </Btn>
-        <Btn kind="danger" disabled={busy} onClick={() => decide({ behavior: "deny", interrupt: true, message: "Piano annullato dall'utente." })}>
+        <Btn kind="danger" disabled={busy} onClick={() => decide({ behavior: "deny", interrupt: true, message: "The user cancelled the plan." })}>
           <FaTimes /> {t("planReject")}
         </Btn>
       </Focusable>

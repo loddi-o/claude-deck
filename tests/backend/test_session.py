@@ -93,6 +93,18 @@ class TestBasicTurn(SessionTestCase):
         mcp = json.loads(argv[argv.index("--mcp-config") + 1])
         self.assertTrue(mcp["mcpServers"]["claude_deck"]["args"][0].endswith("memory_mcp.py"))
 
+    async def test_reply_language_follows_the_ui_language(self):
+        await self.session.send("hello")
+        await self.turn_done()
+        argv = json.loads(self.sb.claude_log_lines()[0][5:])
+        self.assertIn("if unsure, use English", argv[argv.index("--append-system-prompt") + 1])
+        await self.session.new_session()
+        self.settings.update({"ui_language_resolved": "it"})
+        await self.session.send("hello")
+        await self.turn_done()
+        argv = json.loads([l for l in self.sb.claude_log_lines() if l.startswith("ARGV")][-1][5:])
+        self.assertIn("if unsure, use Italian", argv[argv.index("--append-system-prompt") + 1])
+
     async def test_memory_is_injected_into_prompt(self):
         self.memory.ensure()
         self.memory.add("Il Deck ha 16GB di RAM")
@@ -170,7 +182,7 @@ class TestPermissions(SessionTestCase):
         resp = [l for l in self.sb.claude_log_lines() if l.startswith("PERM_RESPONSE")][0]
         data = json.loads(resp[len("PERM_RESPONSE "):])
         self.assertEqual(data["behavior"], "deny")
-        self.assertIn("piano", data["message"].lower())
+        self.assertIn("plan", data["message"].lower())  # model-facing text is English
         self.assertEqual(self.session.mode, "plan")
 
     async def test_question_answers(self):

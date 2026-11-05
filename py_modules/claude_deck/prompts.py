@@ -10,7 +10,7 @@ from typing import Dict, List
 
 MINIMAL_TEMPLATE = (
     "You are Claude Code running inside Claude Deck on {{DEVICE}}. Be concise, reply in the user's "
-    "language, troubleshoot carefully.\n{{ENV_BLOCK}}\n{{DISTRO_RULES}}\n<memory>\n{{MEMORY}}\n</memory>\n"
+    "language ({{LANGUAGE}} if unsure), troubleshoot carefully.\n{{ENV_BLOCK}}\n{{DISTRO_RULES}}\n<memory>\n{{MEMORY}}\n</memory>\n"
 )
 
 STEAMOS_RULES = """\
@@ -136,12 +136,20 @@ def describe_machine(env: Dict[str, str], cwd: str, plugin_dirs: Dict[str, str])
     }
 
 
+LANGUAGE_NAMES = {"it": "Italian", "en": "English"}
+
+
+def language_name(code: str) -> str:
+    return LANGUAGE_NAMES.get(code, "English")
+
+
 def build_system_prompt(
     template_path: str,
     env: Dict[str, str],
     cwd: str,
     memory_text: str,
     plugin_dirs: Dict[str, str],
+    reply_language: str = "English",
 ) -> str:
     template = _read(template_path) or MINIMAL_TEMPLATE
     info = describe_machine(env, cwd, plugin_dirs)
@@ -156,4 +164,5 @@ def build_system_prompt(
         .replace("{{ENV_BLOCK}}", info["env_block"])
         .replace("{{DISTRO_RULES}}", rules)
         .replace("{{MEMORY}}", memory_text)
+        .replace("{{LANGUAGE}}", reply_language)
     )

@@ -11,7 +11,7 @@ from support import REPO, Sandbox, wait_for  # noqa: F401  (sets sys.path)
 
 from claude_deck import memory_mcp, protocol as P, sessions_index  # noqa: E402
 from claude_deck.memory import Memory  # noqa: E402
-from claude_deck.prompts import build_system_prompt, distro_family  # noqa: E402
+from claude_deck.prompts import build_system_prompt, distro_family, language_name  # noqa: E402
 from claude_deck.settings import Settings  # noqa: E402
 from claude_deck.sudo import Sudo  # noqa: E402
 from claude_deck.util import agent_env, clean_env, clip, shrink  # noqa: E402
@@ -90,6 +90,16 @@ class TestSettings(unittest.TestCase):
         self.assertEqual(Settings(path)["mode"], "auto")
         self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600)
 
+    def test_resolved_ui_language_is_validated(self):
+        s = Settings(os.path.join(tempfile.mkdtemp(), "s.json"))
+        self.assertEqual(s["ui_language_resolved"], "en")
+        s.update({"ui_language_resolved": "xx"})
+        self.assertEqual(s["ui_language_resolved"], "en")
+        s.update({"ui_language_resolved": "it", "ui_language": "auto"})
+        self.assertEqual((s["ui_language_resolved"], s["ui_language"]), ("it", "auto"))
+        s.update({"ui_language": "de"})  # unsupported pick is ignored
+        self.assertEqual(s["ui_language"], "auto")
+
     def test_corrupt_file_falls_back_to_defaults(self):
         d = tempfile.mkdtemp()
         path = os.path.join(d, "s.json")
@@ -156,6 +166,16 @@ class TestPrompts(unittest.TestCase):
         self.assertEqual(distro_family({"ID": "steamos", "ID_LIKE": "arch"}), "steamos")
         self.assertEqual(distro_family({"ID": "bazzite", "ID_LIKE": "fedora"}), "bazzite")
         self.assertEqual(distro_family({"ID": "arch"}), "generic")
+
+    def test_reply_language_is_rendered(self):
+        tpl = os.path.join(REPO, "defaults", "system_prompt.md")
+        env = agent_env("/home/deck", "/b")
+        kw = dict(env=env, cwd="/home/deck", memory_text="", plugin_dirs={"decky_home": "/h", "runtime": "/r"})
+        it = build_system_prompt(tpl, reply_language=language_name("it"), **kw)
+        self.assertIn("if unsure, use Italian", it)
+        self.assertIn("if unsure, use English", build_system_prompt(tpl, **kw))
+        self.assertEqual(language_name("de"), "English")  # unsupported -> English
+        self.assertNotIn("{{", it)
 
     def test_prompt_fully_rendered(self):
         text = build_system_prompt(os.path.join(REPO, "defaults", "system_prompt.md"), agent_env("/home/deck", "/b"), "/home/deck",

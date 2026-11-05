@@ -14,7 +14,7 @@ export function textOf(content: any): string {
       .map((b) => {
         if (typeof b === "string") return b;
         if (b && b.type === "text") return b.text ?? "";
-        if (b && b.type === "image") return "[immagine]";
+        if (b && b.type === "image") return "[image]";
         return "";
       })
       .filter(Boolean)

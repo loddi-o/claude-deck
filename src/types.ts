@@ -39,6 +39,7 @@ export interface Settings {
   cwd: string;
   extra_dirs: string[];
   ui_language: "auto" | "it" | "en";
+  ui_language_resolved: "it" | "en";
   voice_language: string;
   voice_model: string;
   voice_silence_ms: number;
