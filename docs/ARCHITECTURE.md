@@ -20,7 +20,7 @@
 | `session.py` | Avvia `claude` come sottoprocesso persistente (nuovo gruppo di processi) e traduce il protocollo `stream-json`. Spawn pigro al primo messaggio, `--resume` quando esiste una conversazione, riavvio dopo crash, fallback `auto` → `acceptEdits`. |
 | `protocol.py` | Forme dei messaggi: `user`, `control_request`/`control_response` (`can_use_tool`, `interrupt`, `set_permission_mode`, `set_model`). Allineato a claude-agent-sdk e verificato col CLI reale (2.1.x). |
 | `hub.py` | Numera gli eventi (`seq`), tiene un ring buffer degli eventi persistenti per risincronizzare la UI e li inoltra con `decky.emit("cd", seq, kind, payload)`. |
-| `voice.py` | Registrazione (`parecord --raw` → `pw-record --raw` → `arecord`), rilevamento fine frase a energia, `whisper-cli`, download dei modelli con progresso. |
+| `voice.py` | Registrazione (`parecord --raw` → `pw-record --raw` → `arecord`), rilevamento fine frase a energia, `whisper-cli`, download dei modelli con progresso (TLS con il bundle di certificati di sistema, perché il Python incorporato in Decky non ne trova uno; ripiego su `curl`). |
 | `memory.py` / `memory_mcp.py` | `memory.md` + server MCP stdio (`remember`, `recall`, `forget`) esposto a Claude via `--mcp-config`. |
 | `sudo.py` + `bin/` | `bin/sudo` (primo nel `PATH`) chiama `sudo -A`; `bin/askpass` stampa la password dal file 0600. |
 | `prompts.py` + `defaults/system_prompt.md` | Prompt di sistema: macchina (dispositivo, OS, disco, Game/Desktop Mode), regole per SteamOS/Bazzite, memoria. |

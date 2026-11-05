@@ -49,7 +49,10 @@ function Setup() {
   if (!setup) return <div className="cd-mutedtxt">{t("loading")}</div>;
 
   const model = setup.voice.models.find((m) => m.name === setup.voice.selected);
-  const dlPct = download && download.total ? Math.min(100, Math.round((download.done / download.total) * 100)) : 0;
+  // a finished download (even a failed or cancelled one) is no longer "in progress"
+  const dl = download && !download.finished ? download : null;
+  const dlError = download?.finished && download.error && download.error !== "cancelled" ? download.error : "";
+  const dlPct = dl && dl.total ? Math.min(100, Math.round((dl.done / dl.total) * 100)) : 0;
 
   const testSudo = async () => {
     const r = await api.sudoTest();
@@ -131,30 +134,30 @@ function Setup() {
         label={t("setupVoiceModel")}
         ok={setup.voice.selected_installed}
         text={
-          download
+          dl
             ? t("downloading", { pct: dlPct })
             : setup.voice.selected_installed
             ? `${setup.voice.selected} · ${t("modelInstalled")}`
             : `${setup.voice.selected} · ${model ? formatBytes(model.size) : ""}`
         }
       >
-        {!setup.voice.selected_installed && !download && model && (
+        {!setup.voice.selected_installed && !dl && model && (
           <Btn kind="primary" onClick={() => void api.voiceDownload(model.name)}>
-            <FaDownload /> {t("download")}
+            <FaDownload /> {dlError ? t("retry") : t("download")}
           </Btn>
         )}
-        {download && (
+        {dl && (
           <Btn kind="danger" onClick={() => void api.voiceDownloadCancel()}>
             {t("cancelDownload")}
           </Btn>
         )}
       </Row>
-      {download && (
+      {dl && (
         <div className="cd-progress">
           <i style={{ width: `${dlPct}%` }} />
         </div>
       )}
-      {download?.error && <div className="cd-warnbox">{download.error}</div>}
+      {dlError && <div className="cd-warnbox">{dlError}</div>}
 
       <Row label={t("setupSudo")} ok={setup.sudo.has_password} text={setup.sudo.has_password ? t("sudoSet") : t("sudoNotSet")}>
         <Btn kind={setup.sudo.has_password ? "plain" : "primary"} onClick={setSudo}>

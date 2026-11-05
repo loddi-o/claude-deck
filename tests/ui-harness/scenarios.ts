@@ -2,6 +2,9 @@
 
 type Ev = [number, string, any];
 
+let cur = "it";
+const L = (it: string, en: string) => (cur === "en" ? en : it);
+
 const makeSettings = (lang: string) => ({
   mode: "plan", model: "", effort: "", resume_on_open: true, cwd: "", extra_dirs: [],
   ui_language: lang, ui_language_resolved: lang === "auto" ? "en" : lang, voice_language: "auto",
@@ -18,7 +21,7 @@ const status = (over: any = {}) => ({
 
 const setupOk = {
   claude: { found: true, path: "/home/deck/.local/bin/claude", version: "2.1.318" },
-  auth: { logged_in: true, email: "utente@example.com", method: "claude.ai" },
+  auth: { logged_in: true, email: "you@example.com", method: "claude.ai" },
   system: { pretty: "SteamOS", family: "steamos", device: "Valve Jupiter" },
   sudo: { has_password: true },
   mic: { sources: [{ name: "alsa_input.pci-0000_04_00.5-platform-acp5x_mach.0.HiFi__hw_acp5x_1__source", state: "RUNNING" }], default: "alsa_input.pci-0000_04_00.5-platform-acp5x_mach.0.HiFi__hw_acp5x_1__source", has_mic: true },
@@ -38,7 +41,7 @@ const tool = (id: string, name: string, input: any) => ["msg", { type: "assistan
 const result = (id: string, content: string, is_error = false) => ["msg", { type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error }] } }];
 const turn = (ok = true) => ["msg", { type: "result", is_error: !ok, subtype: ok ? "success" : "error_during_execution", stats: { duration_ms: 18400, num_turns: 3 } }];
 
-const ANSWER = `Ho controllato i log di RPCS3 e il problema è chiaro:
+const ANSWER_IT = `Ho controllato i log di RPCS3 e il problema è chiaro:
 
 ## Cosa ho trovato
 - Il **firmware PS3** non è installato (\`PS3UPDAT.PUP\` mancante)
@@ -57,7 +60,7 @@ flatpak run net.rpcs3.RPCS3 --no-gui "/home/deck/Emulation/roms/ps3/God of War I
 
 > Nessuna modifica fatta finora: dimmi se vuoi che proceda.`;
 
-const PLAN = `# Piano: sistemare i giochi PS3
+const PLAN_IT = `# Piano: sistemare i giochi PS3
 
 ## Passi
 1. Fare un backup di \`~/.config/rpcs3\` in \`~/.config/rpcs3.bak-20261105\`
@@ -68,6 +71,40 @@ const PLAN = `# Piano: sistemare i giochi PS3
 
 ## Verifica
 - Avviare un gioco di prova e controllare \`RPCS3.log\``;
+
+const ANSWER_EN = `I checked the RPCS3 logs and the problem is clear:
+
+## What I found
+- The **PS3 firmware** is not installed (\`PS3UPDAT.PUP\` is missing)
+- The games path still points to the old one on \`/run/media/mmcblk0p1\`
+- The shader cache is corrupted (**1.2 GB**)
+
+The command EmuDeck uses to launch it:
+
+\`\`\`bash
+flatpak run net.rpcs3.RPCS3 --no-gui "/home/deck/Emulation/roms/ps3/God of War III.ps3"
+\`\`\`
+
+1. I download the firmware from the official site
+2. I install it from *File → Install Firmware*
+3. I clear the shader cache
+
+> Nothing has been changed so far: tell me if you want me to go ahead.`;
+
+const PLAN_EN = `# Plan: fix the PS3 games
+
+## Steps
+1. Back up \`~/.config/rpcs3\` to \`~/.config/rpcs3.bak-20261105\`
+2. Download the official **PS3UPDAT.PUP** firmware (~200 MB)
+3. Install it with \`rpcs3 --installfw\`
+4. Clear the shader cache in \`~/.cache/rpcs3/shaders_cache\`
+5. Update the paths in \`games.yml\`
+
+## Verification
+- Start a test game and check \`RPCS3.log\``;
+
+const ANSWER = () => L(ANSWER_IT, ANSWER_EN);
+const PLAN = () => L(PLAN_IT, PLAN_EN);
 
 function base(events: [string, any][], over: any = {}, setupOver: any = null): any {
   const evs: Ev[] = events.map(([k, p], i) => [i + 1, k, p]);
@@ -82,28 +119,29 @@ function base(events: [string, any][], over: any = {}, setupOver: any = null): a
 
 export function scenario(name: string, lang = "it"): { state: any; setup: any; live?: [string, any, number?][] } {
   settings = makeSettings(lang);
+  cur = lang === "auto" ? "en" : lang;
   switch (name) {
     case "empty":
       return base([], { running: false });
     case "chat":
       return base([
-        user("perche i miei giochi per ps3 non partono"),
-        tool("t1", "Bash", { command: "ls -la ~/.config/rpcs3 && tail -n 40 ~/.cache/rpcs3/RPCS3.log", description: "Controllo config e log di RPCS3" }),
+        user(L("perche i miei giochi per ps3 non partono", "why won't my PS3 games launch")),
+        tool("t1", "Bash", { command: "ls -la ~/.config/rpcs3 && tail -n 40 ~/.cache/rpcs3/RPCS3.log", description: L("Controllo config e log di RPCS3", "Checking RPCS3 config and logs") }),
         result("t1", "total 24\ndrwxr-xr-x 5 deck deck 4096 nov  4 22:12 .\n-rw-r--r-- 1 deck deck  812 nov  4 22:12 config.yml\n…"),
-        tool("t2", "mcp__claude_deck__remember", { note: "RPCS3 ha il firmware mancante" }),
+        tool("t2", "mcp__claude_deck__remember", { note: L("RPCS3 ha il firmware mancante", "RPCS3 firmware is missing") }),
         result("t2", "Salvato in memoria"),
         tool("t3", "Read", { file_path: "/home/deck/.config/rpcs3/games.yml" }),
         result("t3", "BLES01807: /run/media/mmcblk0p1/roms/ps3/…"),
-        asst("a1", ANSWER),
+        asst("a1", ANSWER()),
         turn(),
-        user("sì procedi ma prima fai un backup"),
+        user(L("sì procedi ma prima fai un backup", "yes go ahead but make a backup first")),
       ], { status: "working" });
     case "perm":
       return base([
-        user("pulisci la cache degli shader di rpcs3"),
-        asst("a1", "Svuoto la cache degli shader. Prima controllo quanto pesa."),
-        tool("t1", "Bash", { command: "rm -rf ~/.cache/rpcs3/shaders_cache/*", description: "Svuota la cache shader di RPCS3" }),
-        ["perm", { request_id: "r1", kind: "tool", tool_name: "Bash", tool_use_id: "t1", input: { command: "rm -rf ~/.cache/rpcs3/shaders_cache/*", description: "Svuota la cache shader di RPCS3" }, description: "Svuota la cache shader di RPCS3", can_always: true }],
+        user(L("pulisci la cache degli shader di rpcs3", "clear RPCS3's shader cache")),
+        asst("a1", L("Svuoto la cache degli shader. Prima controllo quanto pesa.", "I'll clear the shader cache. First I'll check how big it is.")),
+        tool("t1", "Bash", { command: "rm -rf ~/.cache/rpcs3/shaders_cache/*", description: L("Svuota la cache shader di RPCS3", "Clear the RPCS3 shader cache") }),
+        ["perm", { request_id: "r1", kind: "tool", tool_name: "Bash", tool_use_id: "t1", input: { command: "rm -rf ~/.cache/rpcs3/shaders_cache/*", description: L("Svuota la cache shader di RPCS3", "Clear the RPCS3 shader cache") }, description: L("Svuota la cache shader di RPCS3", "Clear the RPCS3 shader cache"), can_always: true }],
       ], { status: "waiting", pending: 1 });
     case "edit":
       return base([
@@ -113,16 +151,16 @@ export function scenario(name: string, lang = "it"): { state: any; setup: any; l
       ], { status: "waiting", pending: 1 });
     case "plan":
       return base([
-        user("sistema i giochi ps3"),
-        asst("a1", "Ho finito l'analisi, ecco il piano."),
-        tool("t9", "ExitPlanMode", { plan: PLAN }),
-        ["perm", { request_id: "r1", kind: "plan", tool_name: "ExitPlanMode", tool_use_id: "t9", input: { plan: PLAN }, can_always: false }],
+        user(L("sistema i giochi ps3", "fix my PS3 games")),
+        asst("a1", L("Ho finito l'analisi, ecco il piano.", "Analysis done, here's the plan.")),
+        tool("t9", "ExitPlanMode", { plan: PLAN() }),
+        ["perm", { request_id: "r1", kind: "plan", tool_name: "ExitPlanMode", tool_use_id: "t9", input: { plan: PLAN() }, can_always: false }],
       ], { status: "waiting", pending: 1 });
     case "question":
       return base([
-        user("installa un emulatore"),
+        user(L("installa un emulatore", "install an emulator")),
         tool("t9", "AskUserQuestion", {}),
-        ["perm", { request_id: "r1", kind: "question", tool_name: "AskUserQuestion", tool_use_id: "t9", can_always: false, input: { questions: [{ question: "Quale emulatore vuoi installare?", header: "Emulatore", multiSelect: false, options: [{ label: "RetroArch", description: "Multi-sistema, via Flatpak" }, { label: "PCSX2", description: "PlayStation 2" }, { label: "Dolphin", description: "GameCube e Wii" }] }] } }],
+        ["perm", { request_id: "r1", kind: "question", tool_name: "AskUserQuestion", tool_use_id: "t9", can_always: false, input: { questions: [{ question: L("Quale emulatore vuoi installare?", "Which emulator do you want to install?"), header: L("Emulatore", "Emulator"), multiSelect: false, options: [{ label: "RetroArch", description: L("Multi-sistema, via Flatpak", "Multi-system, via Flatpak") }, { label: "PCSX2", description: "PlayStation 2" }, { label: "Dolphin", description: L("GameCube e Wii", "GameCube and Wii") }] }] } }],
       ], { status: "waiting", pending: 1 });
     case "streaming":
       return {
@@ -145,6 +183,14 @@ export function scenario(name: string, lang = "it"): { state: any; setup: any; l
           ["stream", { e: "d", i: 0, k: "text", s: "Controllo lo spazio." }, 10],
           ["msg", { type: "assistant", message: { id: "m1", role: "assistant", content: [{ type: "text", text: "Controllo lo spazio." }] } }, 10],
           ["msg", { type: "assistant", message: { id: "m1", role: "assistant", content: [{ type: "tool_use", id: "tq", name: "Bash", input: { command: "df -h /home" } }] } }, 10],
+        ],
+      };
+    case "dl-error":
+      return {
+        ...base([], { running: false }),
+        live: [
+          ["voice_download", { name: "small-q5_1", done: 0, total: 190085487 }, 10],
+          ["voice_download", { name: "small-q5_1", done: 0, total: 190085487, finished: true, error: "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed>" }, 10],
         ],
       };
     case "notices":

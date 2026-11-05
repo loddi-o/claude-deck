@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the installable ZIP for Decky: <OUT>/claude-deck-v<version>.zip
 # The archive has a single root folder "claude-deck/" (what Decky's installer expects) and contains
-# the whole repository + the built dist/ + bin/whisper-cli (if built). No node_modules, no .git.
+# the whole repository + the built dist/ + bin/whisper-cli (if built). No node_modules, no .git,
+# no docs/media (screenshots and videos are only for the README).
 # usage: scripts/package.sh [OUT_DIR]      (default: parent directory of the repo)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,6 +24,7 @@ mkdir -p "$STAGE/claude-deck"
 tar -C "$ROOT" \
   --exclude='./node_modules' --exclude='./.git' --exclude='./.tools' --exclude='*.zip' \
   --exclude='__pycache__' --exclude='*.pyc' --exclude='./dist/*.map' --exclude='.pytest_cache' \
+  --exclude='./docs/media' \
   -cf - . | tar -C "$STAGE/claude-deck" -xf -
 
 ZIP="$OUT/claude-deck-v${VERSION}.zip"

@@ -37,6 +37,14 @@ def clean_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
             env.pop(var, None)
     for var in ("PYTHONHOME", "PYTHONPATH", "PYTHONSAFEPATH", "_MEIPASS2", "CLAUDECODE"):
         env.pop(var, None)
+    # CA-bundle variables must point at something real: a path into PyInstaller's temp dir (or a
+    # missing file) makes curl, claude, git... fail with "error adding trust anchors".
+    for var in ("SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        value = env.get(var)
+        if value and (
+            not os.path.exists(value) or "/_MEI" in value or (meipass and value.startswith(meipass))
+        ):
+            env.pop(var, None)
     return env
 
 

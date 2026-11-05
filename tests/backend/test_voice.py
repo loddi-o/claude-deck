@@ -2,8 +2,12 @@ import asyncio
 import http.server
 import logging
 import os
+import ssl
+import tempfile
 import threading
 import unittest
+import urllib.error
+from unittest import mock
 
 from support import Sandbox, wait_for  # noqa: F401  (sets sys.path)
 
@@ -187,6 +191,113 @@ class TestModelDownload(VoiceTestCase):
         self.assertTrue(await wait_for(lambda: any(p.get("finished") for k, p in self.events if k == "voice_download")))
         done = [p for k, p in self.events if k == "voice_download" and p.get("finished")][0]
         self.assertIn("HTTP", done["error"])
+        self.assertFalse(self.engine.model_status()[0]["installed"])
+        self.assertEqual(self.engine.downloading, "")
+
+
+FAKE_CURL = """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+if os.environ.get("FAKE_CURL_FAIL"):
+    sys.stderr.write("curl: (22) The requested URL returned error: 404\\n")
+    sys.exit(22)
+out = args[args.index("-o") + 1]
+open(out, "wb").write(b"m" * 4096)
+"""
+
+
+class TestTlsTrust(unittest.TestCase):
+    """Decky's embedded Python often finds no CA store: we must hand it the system bundle."""
+
+    def test_ssl_context_prefers_env_then_system_bundles(self):
+        tmp = tempfile.mkdtemp()
+        env_file, sys_file = os.path.join(tmp, "env.pem"), os.path.join(tmp, "sys.pem")
+        for f in (env_file, sys_file):
+            open(f, "w").close()
+        with mock.patch.object(V.ssl, "create_default_context") as m, mock.patch.object(V, "CA_BUNDLES", (sys_file,)):
+            with mock.patch.dict(os.environ, {"SSL_CERT_FILE": env_file}):
+                V.ssl_context()
+            self.assertEqual(m.call_args.kwargs["cafile"], env_file)
+            with mock.patch.dict(os.environ, {"SSL_CERT_FILE": os.path.join(tmp, "missing.pem")}):
+                V.ssl_context()
+            self.assertEqual(m.call_args.kwargs["cafile"], sys_file)
+            with mock.patch.object(V, "CA_BUNDLES", (os.path.join(tmp, "nope"),)), mock.patch.dict(os.environ, {"SSL_CERT_FILE": ""}):
+                V.ssl_context()
+            self.assertEqual(m.call_args.kwargs, {})  # nothing found: library defaults
+
+    def test_real_system_bundle_is_loadable_when_present(self):
+        present = [p for p in V.CA_BUNDLES if os.path.isfile(p)]
+        if not present:
+            self.skipTest("no system CA bundle on this machine")
+        with mock.patch.dict(os.environ, {"SSL_CERT_FILE": "", "SSL_CERT_DIR": "/nonexistent"}):
+            self.assertIsInstance(V.ssl_context(), ssl.SSLContext)
+
+    def test_tls_error_detection(self):
+        self.assertTrue(V.is_tls_error(urllib.error.URLError(ssl.SSLCertVerificationError(1, "CERTIFICATE_VERIFY_FAILED"))))
+        self.assertTrue(V.is_tls_error(Exception("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")))
+        self.assertFalse(V.is_tls_error(urllib.error.URLError(ConnectionRefusedError())))
+
+
+class TestDownloadTls(VoiceTestCase):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        os.unlink(self.engine.model_path("base-q5_1"))
+        old = V.MODELS["base-q5_1"]["size"]
+        V.MODELS["base-q5_1"]["size"] = 4096
+        self.addCleanup(lambda: V.MODELS["base-q5_1"].update(size=old))
+        self.sb.install_exe("curl", FAKE_CURL)
+        os.environ.pop("FAKE_CURL_FAIL", None)
+
+    async def asyncTearDown(self):
+        os.environ.pop("FAKE_CURL_FAIL", None)
+        await super().asyncTearDown()
+
+    async def finished(self):
+        self.assertTrue(await wait_for(lambda: any(p.get("finished") for k, p in self.events if k == "voice_download")))
+        return [p for k, p in self.events if k == "voice_download" and p.get("finished")][0]
+
+    def tls_failure(self):
+        return mock.patch.object(
+            V.urllib.request, "urlopen",
+            side_effect=urllib.error.URLError(ssl.SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] unable to get local issuer certificate")),
+        )
+
+    async def test_urllib_receives_the_system_trust_context(self):
+        seen = {}
+
+        def fake_urlopen(req, timeout=None, context=None):
+            seen["context"] = context
+            raise urllib.error.URLError(ConnectionRefusedError())  # not TLS: no curl fallback
+
+        with mock.patch.object(V.urllib.request, "urlopen", fake_urlopen):
+            self.engine.start_download("base-q5_1")
+            done = await self.finished()
+        self.assertIsInstance(seen["context"], ssl.SSLContext)
+        self.assertIn("URLError", done["error"])
+        self.assertFalse(self.engine.model_status()[0]["installed"])
+
+    async def test_tls_error_falls_back_to_curl_and_installs_the_model(self):
+        with self.tls_failure():
+            self.engine.start_download("base-q5_1")
+            done = await self.finished()
+        self.assertEqual(done["error"], "")
+        self.assertTrue(self.engine.model_status()[0]["installed"])
+        self.assertFalse(os.path.exists(self.engine.model_path("base-q5_1") + ".part"))
+
+    async def test_tls_error_without_curl_reports_the_tls_error(self):
+        self.engine.env_fn = lambda: {"PATH": "/nonexistent"}
+        with self.tls_failure():
+            self.engine.start_download("base-q5_1")
+            done = await self.finished()
+        self.assertIn("CERTIFICATE_VERIFY_FAILED", done["error"])
+        self.assertFalse(self.engine.model_status()[0]["installed"])
+
+    async def test_curl_failure_is_reported_and_cleaned_up(self):
+        os.environ["FAKE_CURL_FAIL"] = "1"
+        with self.tls_failure():
+            self.engine.start_download("base-q5_1")
+            done = await self.finished()
+        self.assertTrue(done["error"].startswith("curl:"), done["error"])
         self.assertFalse(self.engine.model_status()[0]["installed"])
         self.assertEqual(self.engine.downloading, "")
 

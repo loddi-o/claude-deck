@@ -12,8 +12,11 @@ import math
 import os
 import re
 import shutil
+import ssl
+import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 import wave
 from typing import Any, Awaitable, Callable, Dict, List, Optional
@@ -34,6 +37,33 @@ MODELS: Dict[str, Dict[str, Any]] = {
 }
 
 Publish = Callable[[str, Dict[str, Any], bool], Awaitable[None]]
+
+# Where distros keep the CA bundle. Decky is a PyInstaller binary whose embedded Python often finds
+# no default CA store ("CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate"), so we
+# point it at the system bundle explicitly.
+CA_BUNDLES = (
+    "/etc/ssl/certs/ca-certificates.crt",  # Debian/Ubuntu, Arch / SteamOS
+    "/etc/ca-certificates/extracted/tls-ca-bundle.pem",  # Arch
+    "/etc/pki/tls/certs/ca-bundle.crt",  # Fedora / Bazzite
+    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",  # Fedora
+    "/etc/ssl/cert.pem",
+)
+
+
+def ssl_context() -> ssl.SSLContext:
+    """TLS context that trusts the system CA bundle even inside Decky's embedded Python."""
+    for path in [os.environ.get("SSL_CERT_FILE", ""), *CA_BUNDLES]:
+        if path and os.path.isfile(path):
+            try:
+                return ssl.create_default_context(cafile=path)
+            except (ssl.SSLError, OSError):
+                continue
+    return ssl.create_default_context()
+
+
+def is_tls_error(exc: BaseException) -> bool:
+    reason = getattr(exc, "reason", exc)
+    return isinstance(reason, ssl.SSLError) or "CERTIFICATE_VERIFY_FAILED" in str(exc)
 
 
 def rms_s16(data: bytes) -> float:
@@ -406,10 +436,48 @@ class VoiceEngine:
         part = dest + ".part"
         state = {"done": 0, "total": info["size"], "error": ""}
 
+        def curl_fallback() -> bool:
+            """Download with the system curl (its TLS trust store always works). True on success."""
+            curl = shutil.which("curl", path=self.env_fn().get("PATH"))
+            if not curl:
+                return False
+            state["done"] = 0
+            with subprocess.Popen(
+                [curl, "-fL", "--silent", "--show-error", "--retry", "2", "-o", part, url],
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=self.env_fn(),
+            ) as proc:  # the context manager closes the pipe and reaps the process
+                while proc.poll() is None:
+                    if self._download_cancel:
+                        proc.terminate()
+                        state["error"] = "cancelled"
+                        return True
+                    try:
+                        state["done"] = os.path.getsize(part)
+                    except OSError:
+                        pass
+                    time.sleep(0.3)
+                if proc.returncode != 0:
+                    err = (proc.stderr.read() if proc.stderr else b"").decode("utf-8", "replace").strip()
+                    state["error"] = f"curl: {err}"[:160]
+                    return True
+            try:
+                state["done"] = os.path.getsize(part)
+            except OSError:
+                pass
+            return True
+
+        def finish() -> None:
+            if state["error"]:
+                return
+            if state["done"] < info["size"] * 0.98:
+                state["error"] = "incomplete"
+                return
+            os.replace(part, dest)
+
         def work() -> None:
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": "claude-deck"})
-                with urllib.request.urlopen(req, timeout=30) as resp, open(part, "wb") as out:
+                with urllib.request.urlopen(req, timeout=30, context=ssl_context()) as resp, open(part, "wb") as out:
                     total = int(resp.headers.get("Content-Length") or info["size"])
                     state["total"] = total
                     while True:
@@ -421,15 +489,15 @@ class VoiceEngine:
                             break
                         out.write(block)
                         state["done"] += len(block)
-                if state["done"] < info["size"] * 0.98:
-                    state["error"] = "incomplete"
-                    return
-                os.replace(part, dest)
+                finish()
             except Exception as exc:  # noqa: BLE001
-                state["error"] = f"{type(exc).__name__}: {exc}"[:160]
                 close = getattr(exc, "close", None)
                 if callable(close):
                     close()
+                if is_tls_error(exc) and curl_fallback():
+                    finish()
+                    return
+                state["error"] = f"{type(exc).__name__}: {exc}"[:160]
 
         fut = loop.run_in_executor(None, work)
         try:

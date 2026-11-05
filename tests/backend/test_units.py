@@ -58,6 +58,19 @@ class TestUtil(unittest.TestCase):
         env = clean_env({"LD_LIBRARY_PATH": "/tmp/_MEI123:/usr/lib/foo"})
         self.assertEqual(env["LD_LIBRARY_PATH"], "/usr/lib/foo")
 
+    def test_clean_env_drops_dead_ca_bundle_variables(self):
+        good = tempfile.NamedTemporaryFile(suffix=".pem")
+        env = clean_env({
+            "SSL_CERT_FILE": "/nonexistent/ca.pem",          # missing file
+            "CURL_CA_BUNDLE": "/tmp/_MEI12345/certifi/cacert.pem",  # PyInstaller temp dir
+            "REQUESTS_CA_BUNDLE": good.name,                 # real file: kept
+            "SSL_CERT_DIR": "/nonexistent-dir",
+        })
+        self.assertNotIn("SSL_CERT_FILE", env)
+        self.assertNotIn("CURL_CA_BUNDLE", env)
+        self.assertNotIn("SSL_CERT_DIR", env)
+        self.assertEqual(env["REQUESTS_CA_BUNDLE"], good.name)
+
     def test_agent_env_puts_plugin_bin_first(self):
         env = agent_env("/home/deck", "/plugin/bin", {"A": "b"})
         self.assertEqual(env["PATH"].split(":")[0], "/plugin/bin")
